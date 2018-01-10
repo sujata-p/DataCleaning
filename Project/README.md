@@ -27,5 +27,5 @@ From the data set in step 4, creates a second, independent tidy data set with th
 3. Run the R script run_analysis.r It calls the R Markdown file, run_analysis.Rmd, which contains the bulk of hte code.
 
 #Outputs producted
--Tidy dataset file (tab-delimited text)
+-Tidy dataset file (tab-delimited text) UCITidyDataset.txt
 -Codebook file codebook.md (Markdown)
