@@ -1,6 +1,6 @@
 ##Code Book
 
-##Initia#l Data
+###Initial Data
 The dataset for this project, see the README.txt found in
 
 ###Data Cleaning
