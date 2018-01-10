@@ -1,9 +1,9 @@
 ##Code Book
 
-###Initial Data
+##Initial Data
 The dataset for this project, see the README.txt found in
 
-###Data Cleaning
+##Data Cleaning
 The steps followed for data cleaning
 1. Merge training and the test datasets to create one dataset
 2. Extracts only the measure ments on the mean and standard deviation for each measurement
@@ -24,7 +24,7 @@ The steps followed for data cleaning
    - Create Tidydataset
     - Save Tidydataset
 
-###Output Data Columns
+##Output Data Columns
 
 > The resulting data set has 
 [1] "subject": The subject id, an integer in the range 1:30          
