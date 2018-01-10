@@ -1,0 +1,151 @@
+---
+title: "GatherAndCleaningData Project"
+author: "Sujata"
+date: "January 8, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(data.table)
+library(tidyr)
+```
+
+## R Markdown
+###Get the data
+
+Dowload the file and put in the folder and unzip
+
+```{r download}
+curPath <- file.path(getwd(), "./UCI HAR Dataset")
+
+fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2fprojectfiles%2fUCI%20HAR%20Dataset.zip"
+f <- "Dataset.zip"
+if (!file.exists(curPath)) {
+  dir.create(curPath)
+}
+if (!file.exists(file.path(curPath,f))) {
+  download.file(fileUrl,file.path(curPath,f))
+  
+  unzip(file.path(curPath,f))
+}
+```
+
+## Read the required dataset files except for the files in the "Intertia Signals"" folder.
+Using "read.table" since it is easier to remove duplicated columns in data.frame.
+
+
+```{r read_data, echo=FALSE}
+uci_X_train <- read.table(file.path(curPath, "train", "X_train.txt"), header=FALSE)
+#head(uci_X_train)
+
+uci_X_test <- read.table(file.path(curPath, "test", "X_test.txt"), header=FALSE)
+#head(uci_X_test)
+
+activity_train <- fread(file.path(curPath, "train" ,"y_train.txt"))
+#head(activity_train)
+
+activity_test <- fread(file.path(curPath, "test", "y_test.txt"))
+#head(activity_test)
+
+subject_train <- fread(file.path(curPath, "train", "subject_train.txt"))
+#head(subject_train)
+
+subject_test <- fread(file.path(curPath, "test", "subject_test.txt"))
+#head(subject_test)
+
+```
+
+#1. Merge training and the test datasets to create one dataset
+
+```{r merge}
+
+uci <- rbind(uci_X_train, uci_X_test)
+
+activity <- rbind(activity_train, activity_test)
+
+dtSubject <- rbind(subject_train, subject_test)
+
+dtSubject <- setNames(dtSubject, "subject")
+
+```
+
+#2. Extracts only the measure ments on the mean and standard deviation for each measurement
+a. Read feature labels
+b. Set the feature labels on the UCI daataset
+c. Select only mean() and std() measurements
+```{r extract_fields}
+features <- fread(file.path(curPath, "features.txt"))
+#head(features)
+
+pattern <- c("mean\\(\\)", "std\\(\\)")
+matchExpression <- paste(pattern, collapse = "|")
+
+uci <- setNames(uci, as.character(features$V2))
+
+#removing duplicated names assuming this is one of cleanup activty bo stated but required to extract only #mean and std
+uci <- uci[,!duplicated(names(uci))]
+uci_subset <- select(uci, matches(matchExpression))
+```
+#3. Uses descriptive activity names to name of the activities in the dataset
+a. Load Activity labels
+b. join with activity data.table 
+This will be used to add descriptive name to the activities
+```{r activity, echo=FALSE}
+
+activity_labels <- fread(file.path(curPath, ".","activity_labels.txt"))
+#head(activity_labels)
+
+dtActivity <- activity %>%
+ left_join(activity_labels) %>%
+ setNames(c("activityNum", "activityName"))
+
+```
+#4. Appropriately labels the data set with descriptive variable names
+a. Merge Subject and Activity tables
+b. Merge the above with UCI dataset
+c. Melt the data table to reshape it from a short and wide format to a tall and narrow format.
+d. Seperate featuers from feature Name using helper function grepVar
+
+```{r labeling}
+
+dtSubject <- cbind(dtSubject, dtActivity)
+dt <- cbind(dtSubject, data.table(uci_subset))
+setkey(dt, subject, activityNum, activityName)
+dt <- melt(dt, id=c("subject","activityNum","activityName"), measure.vars=names(dt)[4:length(names(dt))])
+
+grepVar <- function(regex1, regex2, name1, name2) {
+  ifelse(grepl(regex1, dt$variable, ignore.case = T), name1, 
+      ifelse(grepl(regex2, dt$variable, ignore.case = T), name2, "NA"))
+}
+
+dt$featureDomain <- grepVar("^t", "^f", "Time", "Frequency")
+dt$featureSensor <- grepVar("Acc","Gyro","Accelerometer","Gyroscope")
+dt$featureMotion <- grepVar("BodyAcc","GravityAcc","Body","Gravity")
+dt$featureMeasure <- grepVar("mean()","std()","Mean","SD")
+dt$featureJerk <- ifelse(grepl("Jerk", dt$variable, ignore.case = T), "Jerk", "NA")
+dt$featureMagnitude <- ifelse(grepl("Mag", dt$variable, ignore.case = T), "Magnitude", "NA")
+dt$featureAxis <- ifelse(grepl("-X", dt$variable, ignore.case = T), "X", 
+         ifelse(grepl("-Y", dt$variable, ignore.case = T), "Y", 
+         ifelse(grepl("-Z", dt$variable, ignore.case = T), "Z",      
+                "Other")))
+```
+#5. Create a second, independent tidy data set with average of each variable for each activity and each subject
+a. Create Tidydataset
+b. save Tidydataset
+
+```{r average_activity_subject}
+
+#Ideally it may makes sense to convert activityName, featureDomain, featureSensor, featureMotion, 
+#       featureJerk, featureMagnitude, featureMeasure, featureAxis as factors
+
+setkey(dt, subject, activityNum, activityName, featureDomain, featureSensor, featureMotion, 
+       featureJerk, featureMagnitude, featureMeasure, featureAxis)
+
+dtTidySet <- dt[, list(count=.N, average = mean(value)), by=key(dt)]
+
+write.table(dtTidySet, "TidyDataset.txt", sep="\t")
+
+```
+
