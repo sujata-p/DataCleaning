@@ -1,5 +1,5 @@
 ---
-title: "GatherAndCleaningData Project"
+title: "GettingAndCleaningData Project"
 author: "Sujata"
 date: "January 8, 2018"
 output: html_document
