@@ -24,7 +24,7 @@ The steps followed for data cleaning
   - Create Tidydataset
   - Save Tidydataset
 
-##sOutput Data Columns
+##Output Data Columns
 
 > The resulting data set has 
 [1] "subject": The subject id, an integer in the range 1:30          
